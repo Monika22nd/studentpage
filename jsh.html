@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Sinh Viên</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 10px; }
+        h1, h2 { text-align: center; color: #333; }
+        
+        .form-container { background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        
+        button { cursor: pointer; padding: 10px 15px; border: none; border-radius: 4px; color: white; font-weight: bold; }
+        .btn-add { background-color: #28a745; }
+        .btn-update { background-color: #007bff; display: none; } /* Ẩn mặc định */
+        .btn-cancel { background-color: #6c757d; display: none; margin-left: 10px; }
+        .btn-edit { background-color: #ffc107; color: #000; padding: 5px 10px; margin-right: 5px;}
+        .btn-delete { background-color: #dc3545; padding: 5px 10px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+    <h1>Quản Lý Thông Tin Sinh Viên</h1>
+
+    <div class="form-container">
+        <h2>Nhập/Cập nhật Thông tin</h2>
+        <form id="studentForm" onsubmit="event.preventDefault();">
+            <div class="form-group">
+                <label for="studentId">Mã SV:</label>
+                <input type="text" id="studentId" required placeholder="Nhập mã sinh viên">
+            </div>
+            <div class="form-group">
+                <label for="fullName">Họ và tên:</label>
+                <input type="text" id="fullName" required placeholder="Nhập họ tên">
+            </div>
+            <div class="form-group">
+                <label for="dob">Ngày sinh:</label>
+                <input type="date" id="dob" required>
+            </div>
+            <div class="form-group">
+                <label for="className">Lớp học:</label>
+                <input type="text" id="className" required placeholder="Nhập lớp">
+            </div>
+            <div class="form-group">
+                <label for="gpa">Điểm GPA:</label>
+                <input type="number" id="gpa" step="0.1" min="0" max="4.0" required placeholder="Nhập GPA (0-4.0)">
+            </div>
+
+            <button type="button" class="btn-add" id="btnAdd" onclick="addStudent()">Thêm Sinh Viên</button>
+            <button type="button" class="btn-update" id="btnUpdate" onclick="saveUpdate()">Lưu Cập Nhật</button>
+            <button type="button" class="btn-cancel" id="btnCancel" onclick="resetForm()">Hủy</button>
+        </form>
+    </div>
+
+    <h2>Danh Sách Sinh Viên</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Mã SV</th>
+                <th>Họ và Tên</th>
+                <th>Ngày Sinh</th>
+                <th>Lớp</th>
+                <th>GPA</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody id="studentTableBody">
+            </tbody>
+    </table>
+
+    <script>
+
+        class Student {
+            constructor(id, name, dob, className, gpa) {
+                this.id = id;
+                this.name = name;
+                this.dob = dob;
+                this.className = className;
+                this.gpa = gpa;
+            }
+
+            updateInfo(name, dob, className, gpa) {
+                this.name = name;
+                this.dob = dob;
+                this.className = className;
+                this.gpa = gpa;
+            }
+        }
+
+        let studentList = [];
+       
+        function addStudent() {
+            const id = document.getElementById('studentId').value.trim();
+            const name = document.getElementById('fullName').value.trim();
+            const dob = document.getElementById('dob').value;
+            const className = document.getElementById('className').value.trim();
+            const gpa = document.getElementById('gpa').value;
+
+            if (!id || !name || !dob || !className || !gpa) {
+                alert("Vui lòng điền đầy đủ thông tin!");
+                return;
+            }
+
+            const exists = studentList.some(s => s.id === id);
+            if (exists) {
+                alert("Mã sinh viên đã tồn tại!");
+                return;
+            }
+
+            const newStudent = new Student(id, name, dob, className, gpa);
+            studentList.push(newStudent);
+
+            renderTable();
+            resetForm();
+        }
+
+
+        function editStudent(id) {
+            const student = studentList.find(s => s.id === id);
+            if (!student) return;
+
+            document.getElementById('studentId').value = student.id;
+            document.getElementById('studentId').disabled = true; // Không cho sửa Mã SV khi update
+            document.getElementById('fullName').value = student.name;
+            document.getElementById('dob').value = student.dob;
+            document.getElementById('className').value = student.className;
+            document.getElementById('gpa').value = student.gpa;
+
+
+            document.getElementById('btnAdd').style.display = 'none';
+            document.getElementById('btnUpdate').style.display = 'inline-block';
+            document.getElementById('btnCancel').style.display = 'inline-block';
+        }
+
+
+        function saveUpdate() {
+            const id = document.getElementById('studentId').value; // ID đang bị disable nhưng vẫn lấy được value
+            const name = document.getElementById('fullName').value.trim();
+            const dob = document.getElementById('dob').value;
+            const className = document.getElementById('className').value.trim();
+            const gpa = document.getElementById('gpa').value;
+
+            const studentIndex = studentList.findIndex(s => s.id === id);
+            
+            if (studentIndex !== -1) {
+                // Gọi phương thức update của đối tượng Student
+                studentList[studentIndex].updateInfo(name, dob, className, gpa);
+                
+                renderTable();
+                resetForm();
+                alert("Cập nhật thành công!");
+            }
+        }
+
+        function deleteStudent(id) {
+            if (confirm(`Bạn có chắc muốn xóa sinh viên mã ${id}?`)) {
+                studentList = studentList.filter(s => s.id !== id);
+                renderTable();
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = ''; // Xóa nội dung cũ
+
+            studentList.forEach(student => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${student.id}</td>
+                    <td>${student.name}</td>
+                    <td>${formatDate(student.dob)}</td>
+                    <td>${student.className}</td>
+                    <td>${student.gpa}</td>
+                    <td>
+                        <button class="btn-edit" onclick="editStudent('${student.id}')">Sửa</button>
+                        <button class="btn-delete" onclick="deleteStudent('${student.id}')">Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('studentForm').reset();
+            document.getElementById('studentId').disabled = false;
+            
+            document.getElementById('btnAdd').style.display = 'inline-block';
+            document.getElementById('btnUpdate').style.display = 'none';
+            document.getElementById('btnCancel').style.display = 'none';
+        }
+
+        function formatDate(dateString) {
+            if(!dateString) return "";
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
+        }
+    </script>
+</body>
+</html>
